@@ -1,0 +1,317 @@
+<template>
+  <!-- Only one root node is allowed in template. -->
+  <div class="container">
+
+    <div class="header">
+      <!-- 输入区代码实现 -->
+      <div class="scan">
+        <image src="./img/sm.png" @click="scancore"></image>
+      </div>
+      <div class="input">
+        <input placeholder="搜索内容或网址" class="search-text" id="st" @change="getAccountValue" value="{{accountValue}}" />
+      </div>
+      <div class="search"><input type="button" value="搜索" class="search-btn" id="sb" @click="search_btn" /></div>
+    </div>
+
+    <div class="content">
+      <!-- 网页展示区代码 -->
+      <web class="web-page" src="{{websrc}}" trustedurl="{{list}}" onpagestart="onPageStart" onpagefinish="onPageFinish"
+        onerror="onError" onmessage="onMessage" id="web"></web>
+    </div>
+
+    <div class="footer">
+      <!-- 屏幕底部返回、前进、刷新页面功能 -->
+      <div class="back">
+        <image src="./img/back.png" id="back" onclick="back" alt="返回"></image>
+      </div>
+      <div class="next">
+        <image src="./img/next.png" id="next" onclick="next" alt="前进"></image>
+      </div>
+      <div class="refresh" onclick="refresh">
+        <image src="./img/refresh.png" alt="刷新" id="refresh"></image>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style>
+  .container {
+    flex-direction: column;
+    /* justify-content: center; */
+    align-items: center;
+  }
+
+  /*********************** 顶部样式start *********************/
+  .header {
+    width: 95%;
+    height: 110px;
+    border: 1px solid #1a1a1a;
+    display: flex;
+    top: 5px;
+    padding: 5px;
+    border-radius: 20px;
+    border-width: 5px;
+  }
+
+  .search {
+    width: 150px;
+    height: 80px;
+    background-color: #248dff;
+    /* 垂直方向上居中 */
+    position: absolute;
+    top: 55px;
+    margin-top: -40px;
+    right: 15px;
+    border-radius: 10px;
+  }
+  .search input {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    color: #ffffff;
+    margin: auto;
+    font-size: 40px;
+    padding: 10px;
+    background-color: transparent;
+  }
+  .input {
+    width: 400px;
+    height: 80px;
+    /* 垂直方向上居中 */
+    position: absolute;
+    top: 55px;
+    margin-top: -40px;
+    margin-left: 120px;
+  }
+  .search-text {
+    width: 100%;
+    height: 100%;
+    font-size: 40px;
+  }
+  .scan {
+    /* 垂直方向上居中 */
+    position: absolute;
+    top: 55px;
+    margin-top: -40px;
+    margin-left: 20px;
+  }
+  .scan image {
+    width: 80px;
+    height: 80px;
+  }
+  /*********************** 顶部样式end *********************/
+
+  /*********************** 网页展示区start *********************/
+  .web-page {
+    width: 100%;
+    height: 1300px;
+    top: 20px;
+  }
+  /*********************** 网页展示区end *********************/
+
+  /*********************** 底部样式start *********************/
+  .footer {
+    width: 100%;
+    height: 90px;
+    border-top: 1px solid #b0b0b0;
+    background-color: #ffffff;
+    position: fixed;
+    display: flex;
+    bottom: 0px;
+  }
+  .back {
+    width: 70px;
+    height: 70px;
+    margin: auto;
+  }
+  .next {
+    width: 94px;
+    height: 94px;
+    margin: auto;
+    margin-top: -3px;
+  }
+  .refresh {
+    width: 60px;
+    height: 60px;
+    margin: auto;
+  }
+  .footer text {
+    font-size: 38px;
+  }
+  .text_active {
+    color: #cd2325;
+  }
+  /*********************** 底部样式end *********************/
+</style>
+
+<script>
+  //引入二维码模块
+  import barcode from '@system.barcode';
+  //引入页面路由模块
+  import router from "@system.router";
+  //引入webview模块
+  import webview from '@system.webview';
+  //引入数据存储模块
+  import storage from '@system.storage';
+
+  module.exports = {
+    //数据模型
+    data: {
+      title: '',
+      context: '',
+      websrc: '',
+      pattern: '',
+      arrowRightShow: true,
+      isRefreshing: false,
+      isUrl: false,
+      list: [/.*/, "new RegExp('https?.*')"],
+      msg: '',
+      accountValue: ''
+    },
+
+    //页面初始化
+    onInit() {
+      //this指向当前模块
+      this.$on('arrowLeft', this.arrowLeftIcon)
+      this.$on('arrowRight', this.arrowRightIcon)
+      this.websrc = "https://m.baidu.com/"
+      //正则url检查
+      this.pattern = /^([hH][tT]{2}[pP]:\/\/|[hH][tT]{2}[pP][sS]:\/\/)(([A-Za-z0-9-~]+)\.)+([A-Za-z0-9-~\/])+$/; // fragment locater
+
+      //数据存储的get方法获取保存的网址
+      storage.get({
+        key: 'endwebsrc',
+        success: function (data) {
+          if (data !== null && data !== "https://m.baidu.com/") {
+            webview.loadUrl({
+              url: data,
+            });
+          }
+        },
+        fail: function (data, code) {
+          console.log("get handling fail, code=" + code);
+        }
+      })
+    },
+
+    //扫码功能
+    scancore: function () {
+      //调用扫描二维码功能
+      barcode.scan({
+        success: function (data) {
+          console.log('handling success: ' + data.result);
+          webview.loadUrl({
+            url: data.result
+          });
+        },
+        fail: function (data, code) {
+          console.log('handling fail, code = ' + code);
+        }
+      })
+    },
+
+    //输入框change事件
+    getAccountValue: function (e) {
+      this.accountValue = e.value // 此处e.value,为输入框的value属性
+      if (this.pattern.test(e.value)) {
+        this.isUrl = true;
+      } else {
+        this.isUrl = false;
+      }
+    },
+
+    //搜索按钮点击事件
+    search_btn() {
+      if (this.isUrl) {
+        this.websrc = this.accountValue;
+      } else {
+        this.websrc = 'https://m.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&tn=baidu&wd=' + this.accountValue;
+      }
+    },
+
+    //开始加载网页时触发
+    onPageStart(e) {
+      this.isRefreshing = false;
+      console.info('pagestart: ' + e.url)
+    },
+
+    //pagefinish事件获取当前网址,每次页面的切换会触发
+    onPageFinish(e) {
+      //测试打印输出
+      console.info('pagefinish: ' + e.url);
+      //使用数据存储的set方法保存当前网站
+      storage.set({
+        key: 'endwebsrc',
+        value: e.url,
+        success: function (data) { console.log("handling success"); },
+        fail: function (data, code) {
+          console.log("handling fail, code=" + code);
+        }
+      });
+      // 根据数据是否可以前进历史页面，隐藏右侧图标
+      this.arrowRightShow = e.canForward;
+    },
+
+
+    //页面向前浏览
+    arrowRightIcon() {
+      this.isCanForward();
+    },
+    //页面向后浏览
+    arrowLeftIcon() {
+      this.isCanBack();
+    },
+
+    //向前浏览函数
+    isCanForward() {
+      this.$element('web').canForward({
+        callback: function (e) {
+          if (e) {
+            //浏览历史页面中的前一个页面
+            this.$element('web').forward();
+          }
+        }.bind(this)
+      })
+    },
+    //向后浏览函数
+    isCanBack() {
+      this.$element('web').canBack({
+        callback: function (e) {
+          if (e) {
+            //浏览历史页面中的后一个页面
+            this.$element('web').back();
+          } else {
+            router.back();
+          }
+        }.bind(this)
+      })
+    },
+    //返回键事件
+    back(e) {
+      this.$dispatch("arrowLeft");
+    },
+    //前进键事件
+    next() {
+      this.$dispatch('arrowRight');
+    },
+    //刷新键事件
+    refresh: function (e) {
+      //重新加载页面
+      this.$element('web').reload();
+    },
+
+    //网页加载出现错误时触发或者打开的网页中存在错误时触发。
+    onError() {
+      console.info('pageError')
+    },
+    //收到快应用发送的消息时触发
+    onMessage(e) {
+      console.info('onmessage e = ' + e.message + ", url = " + e.url);
+      this.msg = e.message;
+    },
+    //向web组件发送错误信息
+    sendMessage: function () {
+      this.$element('web').postMessage({ message: 'message to Web page' });
+    },
+  }
+</script>

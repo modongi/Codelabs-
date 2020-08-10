@@ -1,0 +1,37 @@
+{
+  "package": "com.huawei.demo",
+  "name": "华为codelab快应用demo",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "icon": "/Common/logo.png",
+  "minPlatformVersion": 1040,
+  "features": [
+    {"name":"system.fetch"},
+    {"name":"system.barcode"},
+    {"name":"system.router"},
+    {"name":"system.prompt"},
+    {"name":"system.webview"},
+    {"name": "system.storage"}
+  ],
+  "permissions": [
+    {
+      "origin": "*"
+    }
+  ],
+  "config": {},
+  "router": {
+    "entry": "quickDemo",
+    "pages": {
+      "quickDemo": {
+        "component": "quickBrowser"
+      }
+    }
+  },
+  "display": {
+    "pages": {
+      "quickDemo": {
+        "titleBarText": "quick浏览器"
+      }
+    }
+  }
+}
